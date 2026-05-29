@@ -63,7 +63,11 @@ export const signup = asyncHandler(async (req, res) => {
 });
 
 export const refresh = asyncHandler(async (req , res) => {
-  var {refreshToken} = req.body;
+  var refreshToken = req.body?.refreshToken || req.headers.authorization;
+  if (typeof refreshToken === 'string') {
+    refreshToken = refreshToken.replace(/^Bearer\s+/i, '').trim();
+  }
+
   if(!refreshToken){
     throw ApiError.badRequest("Refresh token is required");
   }
@@ -75,8 +79,12 @@ export const refresh = asyncHandler(async (req , res) => {
 
   if (isRedisAvailable()) {
     var storedRefreshToken = await getRefreshToken(decoded.userId);
-    if(storedRefreshToken !== refreshToken){
-      throw ApiError.badRequest("Invalid refresh token");
+    if(!storedRefreshToken){
+      throw ApiError.badRequest("Session expired. Please login again");
+    }
+
+    if(storedRefreshToken.trim() !== refreshToken){
+      throw ApiError.badRequest("Refresh token does not match latest login session");
     }
   }
 
@@ -104,7 +112,7 @@ export const logout = asyncHandler(async (req , res) => {
     await blacklistToken(token , accessTokenExpiry);
 
     // Delete refresh token using userId from middleware
-    await deleteRefreshToken(req.user);
+    await deleteRefreshToken(req.user._id);
   }
 
   return ApiResponse.success(res , "Logged out successfully");

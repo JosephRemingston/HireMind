@@ -134,8 +134,14 @@
                   "",
                   "const json = pm.response.json();",
                   "if (json && json.data) {",
-                  "  if (json.data.accessToken) pm.collectionVariables.set('accessToken', json.data.accessToken);",
-                  "  if (json.data.refreshToken) pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "  if (json.data.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "    pm.environment.set('accessToken', json.data.accessToken);",
+                  "  }",
+                  "  if (json.data.refreshToken) {",
+                  "    pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "    pm.environment.set('refreshToken', json.data.refreshToken);",
+                  "  }",
                   "}"
                 ]
               }
@@ -177,6 +183,25 @@
         },
         {
           "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "  pm.environment.set('accessToken', json.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "auth": {
               "type": "noauth"
