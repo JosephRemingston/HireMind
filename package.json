@@ -4,16 +4,22 @@
   "description": "",
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
+  "type": "module",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "body-parser": "^2.2.2",
+    "@google/generative-ai": "^0.24.1",
+    "@openrouter/sdk": "^0.12.35",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "ioredis": "^5.11.0",
+    "fs": "^0.0.1-security",
+    "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.6.3"
+    "mongoose": "^9.0.2"
   }
 }
