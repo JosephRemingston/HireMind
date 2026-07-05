@@ -7,19 +7,30 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon index.js",
+    "start-server": "node index.js",
+    "start-worker": "node worker.js",
+    "dev": "concurrently \"npm run start-server\" \"npm run start-worker\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1079.0",
+    "@aws-sdk/s3-request-presigner": "^3.1056.0",
     "@google/generative-ai": "^0.24.1",
     "@openrouter/sdk": "^0.12.35",
+    "axios": "^1.18.1",
     "bcrypt": "^6.0.0",
+    "bullmq": "^5.79.2",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "fs": "^0.0.1-security",
-    "ioredis": "^5.8.2",
+    "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.0.2"
+    "mongoose": "^9.7.3",
+    "multer": "^2.2.0",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }

@@ -18,7 +18,7 @@ const getRedisUrl = () => {
 export const connectRedis = async () => {
   try {
     redisClient = new Redis(getRedisUrl(), {
-      maxRetriesPerRequest: 1,
+      maxRetriesPerRequest: null,
       retryStrategy: (times) => {
         const delay = Math.min(times * 50, 2000);
         return delay;
