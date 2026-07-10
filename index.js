@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import ApiResponse from "./utils/ApiResponse.js";
 import authRoutes from "./routes/auth.routes.js";
+import resumeRoutes from "./routes/resume.routes.js";
 import connectDB from "./configs/database.js";
 import { connectRedis } from "./configs/redis.js";
 
@@ -23,6 +24,7 @@ await connectRedis();
 
 
 app.use("/api/auth/" , authRoutes);
+app.use("/api/resumes/" , resumeRoutes);
 
 app.get("/" , (req , res) => {
     return ApiResponse.success(res , "server")

@@ -8,10 +8,11 @@ import ApiResponse from "../utils/ApiResponse.js";
 import Batch from "../models/batch.models.js";
 import Resume from "../models/resume.models.js";
 import s3 from "../configs/s3.js";
+import resumeQueue from "../queues/resume.queues.js";
 
 const uploadResumes = asyncHandler(async (req, res) => {
 
-    const userId = req.user.id;
+    const userId = req.user._id.toString();
     const { batchName } = req.body;
 
     if (!req.files || req.files.length === 0) {
@@ -73,12 +74,9 @@ const uploadResumes = asyncHandler(async (req, res) => {
         );
     }
 
-    return ApiResponse.success(res, {
-        message: "Resumes uploaded successfully",
-        data: {
-            batch,
-            resumes: uploadedResumes
-        }
+    return ApiResponse.success(res, "Resumes uploaded successfully", {
+        batch,
+        resumes: uploadedResumes
     });
 
 });
