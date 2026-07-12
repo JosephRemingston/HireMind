@@ -1,7 +1,7 @@
 import pdfParse from "pdf-parse";
 import winkNLP from "wink-nlp";
 import model from "wink-eng-lite-web-model";
-import { pipeline } from "@xenova/transformers";
+import { generateEmbeddingFromText } from "./embedding.service.js";
 
 const nlp = winkNLP(model);
 
@@ -640,16 +640,7 @@ function extractEntities(text) {
 
 // ─── Embedding Generation ──────────────────────────────────────────────────────
 
-let embeddingPipeline = null;
-
 async function generateEmbedding(parsedData) {
-    if (!embeddingPipeline) {
-        embeddingPipeline = await pipeline(
-            "feature-extraction",
-            "Xenova/all-MiniLM-L6-v2"
-        );
-    }
-
     const parts = [];
     if (parsedData.contact?.name) parts.push(`Name: ${parsedData.contact.name}`);
     if (parsedData.summary) parts.push(`Summary: ${parsedData.summary}`);
@@ -670,12 +661,7 @@ async function generateEmbedding(parsedData) {
     }
 
     const text = parts.join(". ") || "Empty resume";
-    const output = await embeddingPipeline(text, {
-        pooling: "mean",
-        normalize: true,
-    });
-
-    return Array.from(output.data);
+    return await generateEmbeddingFromText(text, "Empty resume");
 }
 
 // ─── Main Orchestrator ─────────────────────────────────────────────────────────

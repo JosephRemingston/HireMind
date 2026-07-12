@@ -1,5 +1,6 @@
 import express from "express";
 import { uploadResumes } from "../controllers/upload.controller.js";
+import { createJobDescription } from "../controllers/jd.controller.js";
 import {
 	getBatch,
 	getBatchProgress,
@@ -13,7 +14,8 @@ import { upload } from "../middlewares/upload.middleware.js";
 
 var router = express.Router();
 
-router.post("/upload", authenticate, upload.array("resumes", 100), uploadResumes);
+router.post("/upload", authenticate, upload.array("resumes", 1000), uploadResumes);
+router.post("/jd", authenticate, createJobDescription);
 router.get("/batches", authenticate, listBatches);
 router.get("/batches/:batchId/progress", authenticate, getBatchProgress);
 router.get("/batches/:batchId/resumes", authenticate, listBatchResumes);
