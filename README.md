@@ -106,4 +106,4 @@ You can set custom weights on a Job Description (persisted at `/api/resumes/jd` 
 
 ## API Documentation
 See the detailed endpoint specifications here:
-👉 **[API_DOCUMENTATION.md](api_documentation.md)**
+👉 **[API_DOCUMENTATION.md](API_DOC.md)**
