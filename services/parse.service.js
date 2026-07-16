@@ -1,7 +1,8 @@
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import winkNLP from "wink-nlp";
 import model from "wink-eng-lite-web-model";
 import { generateEmbeddingFromText } from "./embedding.service.js";
+import { parseResumeWithLLM } from "./llm.service.js";
 
 const nlp = winkNLP(model);
 
@@ -336,7 +337,8 @@ const SECTION_PATTERNS = [
 // ─── Text Extraction ───────────────────────────────────────────────────────────
 
 async function extractText(pdfBuffer) {
-    const data = await pdfParse(pdfBuffer);
+    const parser = new PDFParse({ data: pdfBuffer });
+    const data = await parser.getText();
     return data.text;
 }
 
@@ -664,18 +666,103 @@ async function generateEmbedding(parsedData) {
     return await generateEmbeddingFromText(text, "Empty resume");
 }
 
-// ─── Main Orchestrator ─────────────────────────────────────────────────────────
+// ─── LLM Result Normaliser ─────────────────────────────────────────────────────
 
-async function parseResume(pdfBuffer) {
-    const rawText = await extractText(pdfBuffer);
+/**
+ * Converts raw LLM JSON output into the same parsedData shape that the
+ * regex-based pipeline produces. Skills are re-matched against SKILLS_DB so
+ * categories are always normalised; LLM-only skills keep their LLM category.
+ */
+function buildParsedDataFromLLM(llmResult, rawText) {
+    // ── contact ──
+    const contact = {
+        name:     llmResult.contact?.name     || null,
+        email:    llmResult.contact?.email    || null,
+        phone:    llmResult.contact?.phone    || null,
+        linkedin: llmResult.contact?.linkedin || null,
+        github:   llmResult.contact?.github   || null,
+        location: llmResult.contact?.location || null,
+    };
+
+    // ── experience — validate each entry has at least a title ──
+    const experience = (Array.isArray(llmResult.experience) ? llmResult.experience : [])
+        .filter(e => e && (e.title || e.company))
+        .map(e => ({
+            title:       e.title       || null,
+            company:     e.company     || null,
+            dates:       e.dates       || null,
+            description: e.description || null,
+        }));
+
+    // ── education ──
+    const education = (Array.isArray(llmResult.education) ? llmResult.education : [])
+        .map(e => ({
+            institution: e.institution || null,
+            degree:      e.degree      || null,
+            field:       e.field       || null,
+            dates:       e.dates       || null,
+        }));
+
+    // ── skills — normalise through SKILLS_DB for consistent categories ──
+    const llmSkills = Array.isArray(llmResult.skills) ? llmResult.skills : [];
+    const dbSkills  = extractSkills(rawText); // regex pass for completeness
+    const seen      = new Set();
+    const skills    = [];
+
+    for (const s of [...dbSkills, ...llmSkills]) {
+        const name = (typeof s === "string" ? s : s.name || "").trim();
+        if (!name) continue;
+        const key  = name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        // Prefer SKILLS_DB category; fall back to LLM-provided category
+        const category = SKILLS_DB[key] || s.category || "Other";
+        skills.push({ name, category });
+    }
+
+    // ── certifications ──
+    const certifications = (Array.isArray(llmResult.certifications) ? llmResult.certifications : [])
+        .map(c => ({ name: (typeof c === "string" ? c : c.name || "").trim() }))
+        .filter(c => c.name);
+
+    // ── projects ──
+    const projects = (Array.isArray(llmResult.projects) ? llmResult.projects : [])
+        .map(p => ({
+            name:        p.name        || null,
+            description: p.description || null,
+        }));
+
+    return {
+        contact,
+        summary:      llmResult.summary || null,
+        experience,
+        education,
+        skills,
+        projects,
+        certifications,
+        awards:       null,
+        languages:    null,
+        volunteer:    null,
+        interests:    null,
+        publications: null,
+        detectedDates:         [],
+        detectedOrganizations: [],
+        rawText,
+        parsedBy: "llm",
+    };
+}
+
+// ─── Regex-based Orchestrator (unchanged logic, extracted for clarity) ─────────
+
+async function parseResumeWithRegex(rawText) {
     const sections = splitSections(rawText);
 
     const contact = extractContact(rawText);
     contact.name = extractName(sections.header || "", rawText);
 
     const experience = parseExperience(sections.experience);
-    const education = parseEducation(sections.education);
-    const projects = parseProjects(sections.projects);
+    const education  = parseEducation(sections.education);
+    const projects   = parseProjects(sections.projects);
 
     const certifications = sections.certifications
         ? sections.certifications.split("\n").map((l) => l.trim()).filter(Boolean).map((line) => ({ name: line }))
@@ -687,23 +774,43 @@ async function parseResume(pdfBuffer) {
 
     const entities = extractEntities(rawText);
 
-    const parsedData = {
+    return {
         contact,
-        summary: sections.summary || null,
+        summary:      sections.summary || null,
         experience,
         education,
         skills,
         projects,
         certifications,
-        awards: sections.awards || null,
-        languages: sections.languages || null,
-        volunteer: sections.volunteer || null,
-        interests: sections.interests || null,
+        awards:       sections.awards       || null,
+        languages:    sections.languages    || null,
+        volunteer:    sections.volunteer    || null,
+        interests:    sections.interests    || null,
         publications: sections.publications || null,
-        detectedDates: entities.dates,
+        detectedDates:         entities.dates,
         detectedOrganizations: entities.organizations,
         rawText,
+        parsedBy: "regex",
     };
+}
+
+// ─── Main Orchestrator ─────────────────────────────────────────────────────────
+
+async function parseResume(pdfBuffer) {
+    const rawText = await extractText(pdfBuffer);
+
+    // ── 1. Try LLM parser (Gemini 1.5 Flash) ──────────────────────────────────
+    let parsedData = null;
+    const llmResult = await parseResumeWithLLM(rawText);
+
+    if (llmResult) {
+        parsedData = buildParsedDataFromLLM(llmResult, rawText);
+        console.log(`[parse.service] LLM parser used — ${parsedData.experience.length} experience entries detected`);
+    } else {
+        // ── 2. Fall back to regex pipeline ──────────────────────────────────────
+        console.log("[parse.service] Falling back to regex parser");
+        parsedData = await parseResumeWithRegex(rawText);
+    }
 
     const embedding = await generateEmbedding(parsedData);
 

@@ -9,8 +9,13 @@ import {
 	listBatches,
 	listResumes
 } from "../controllers/resume.controller.js";
+import {
+	runMatch,
+	listMatches,
+	getMatchResult
+} from "../controllers/match.controller.js";
 import { authenticate } from "../middlewares/auth.middlware.js";
-import { upload } from "../middlewares/upload.middleware.js";
+import upload from "../middlewares/upload.middleware.js";
 
 var router = express.Router();
 
@@ -22,5 +27,10 @@ router.get("/batches/:batchId/resumes", authenticate, listBatchResumes);
 router.get("/batches/:batchId", authenticate, getBatch);
 router.get("/resumes", authenticate, listResumes);
 router.get("/resumes/:resumeId", authenticate, getResume);
+
+// Matching Routes
+router.post("/match", authenticate, runMatch);
+router.get("/matches", authenticate, listMatches);
+router.get("/matches/:matchId", authenticate, getMatchResult);
 
 export default router;

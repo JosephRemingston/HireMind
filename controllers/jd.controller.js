@@ -7,9 +7,9 @@ import { parseJobDescription } from "../services/jd.service.js";
 
 const createJobDescription = asyncHandler(async (req, res) => {
     const userId = req.user._id.toString();
-    const { title, rawText, keywords, skills } = req.body;
+    const { title, rawText, keywords, skills, weights } = req.body;
 
-    if (!rawText || typeof rawText !== "string" || !rawText.trim()) {
+    if (!rawText || !rawText.trim()) {
         throw ApiError.badRequest("Job description text is required");
     }
 
@@ -18,6 +18,7 @@ const createJobDescription = asyncHandler(async (req, res) => {
         rawText,
         keywords,
         skills,
+        weights,
     });
 
     const jobDescription = await JobDescription.create({

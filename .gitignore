@@ -1,2 +1,8 @@
 /node_modules
 .env
+.env.example
+scan_resumes_cache.json
+scratch_view_joseph.js
+parsed_resumes_cache.json
+evaluate_matching.js
+scan_resumes.js

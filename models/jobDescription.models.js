@@ -27,6 +27,33 @@ const jobDescriptionSchema = new Schema(
             default: [],
         },
 
+        requiredSkills: {
+            type: [Schema.Types.Mixed],
+            default: [],
+        },
+
+        minimumExperience: {
+            type: Schema.Types.Mixed,
+            default: null,
+        },
+
+        seniority: {
+            type: String,
+            default: null,
+            trim: true,
+        },
+
+        location: {
+            type: String,
+            default: null,
+            trim: true,
+        },
+
+        responsibilities: {
+            type: [String],
+            default: [],
+        },
+
         skills: {
             type: [Schema.Types.Mixed],
             default: [],
@@ -35,6 +62,11 @@ const jobDescriptionSchema = new Schema(
         embedding: {
             type: [Number],
             default: [],
+        },
+
+        weights: {
+            type: Schema.Types.Mixed,
+            default: null, // null = use system defaults at match time
         },
     },
     {
